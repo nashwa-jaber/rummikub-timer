@@ -1,65 +1,110 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useState, useEffect, useCallback } from 'react';
+
+export default function RummikubTimer() {
+  const [timeLeft, setTimeLeft] = useState(60);
+  const [isActive, setIsActive] = useState(false);
+  const [isTimeUp, setIsTimeUp] = useState(false);
+  const [turnCount, setTurnCount] = useState(1);
+
+  // Bell Sound Logic (Simulating a Desk Bell)
+  const playBell = useCallback(() => {
+    const context = new (window.AudioContext || (window as any).webkitAudioContext)();
+    
+    // Create multiple oscillators for a richer "bell" tone
+    const frequencies = [880, 1760]; // Root and Octave
+    
+    frequencies.forEach((freq, index) => {
+      const osc = context.createOscillator();
+      const gain = context.createGain();
+      
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, context.currentTime);
+      
+      // The "Strike" and "Decay"
+      gain.gain.setValueAtTime(index === 0 ? 0.5 : 0.2, context.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 1.5);
+      
+      osc.connect(gain);
+      gain.connect(context.destination);
+      
+      osc.start();
+      osc.stop(context.currentTime + 1.5);
+    });
+
+    if ('vibrate' in navigator) navigator.vibrate([100, 50, 100]);
+  }, []);
+
+  useEffect(() => {
+    let interval: any = null;
+    if (isActive && timeLeft > 0) {
+      interval = window.setInterval(() => {
+        setTimeLeft((prev) => Math.max(0, prev - 0.01));
+      }, 10);
+    } else if (timeLeft <= 0 && isActive) {
+      setIsActive(false);
+      setIsTimeUp(true);
+      playBell();
+    }
+    return () => { if (interval) window.clearInterval(interval); };
+  }, [isActive, timeLeft, playBell]);
+
+  const handleNext = () => {
+    setTimeLeft(60);
+    setIsTimeUp(false);
+    setIsActive(true);
+    setTurnCount(prev => prev + 1);
+  };
+
+  const togglePause = () => setIsActive(!isActive);
+
+  const handleReset = () => {
+    setIsActive(false);
+    setIsTimeUp(false);
+    setTimeLeft(60);
+    setTurnCount(1);
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <main className={`flex min-h-screen flex-col items-center justify-center p-6 transition-all duration-700 ${isTimeUp ? 'bg-blue-500' : 'bg-slate-900'} text-white`}>
+      
+      <div className="text-sm font-mono tracking-[0.3em] mb-4 opacity-40 uppercase">Round {turnCount}</div>
+      
+      {/* Visual Indicator: Turns Yellow when time is up, no pulse */}
+      <div className={`text-8xl font-mono tabular-nums mb-12 transition-colors duration-300 ${isTimeUp ? 'text-yellow-300 scale-110' : 'text-white'}`}>
+        {timeLeft.toFixed(2)}
+      </div>
+
+      <div className="flex flex-col w-full max-w-sm gap-6">
+        <button
+          onClick={handleNext}
+          className="h-32 bg-blue-600 rounded-3xl text-4xl font-black shadow-xl active:scale-95 transition-all border-4 border-blue-400"
+        >
+          {isTimeUp ? "NEXT TURN" : (timeLeft === 60 && !isActive ? "START" : "NEXT")}
+        </button>
+
+        <div className="flex gap-4">
+          <button
+            onClick={togglePause}
+            disabled={isTimeUp || (timeLeft === 60 && !isActive)}
+            className={`flex-1 h-20 rounded-2xl text-xl font-bold transition-all border-2 ${
+              isActive 
+                ? 'bg-orange-600 border-orange-400' 
+                : 'bg-emerald-600 border-emerald-400'
+            } disabled:opacity-20`}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            {isActive ? "STOP" : "CONTINUE"}
+          </button>
+          
+          <button
+            onClick={handleReset}
+            className="flex-1 h-20 bg-slate-800 border-2 border-slate-700 rounded-2xl text-xl font-bold active:scale-95"
           >
-            Documentation
-          </a>
+            RESET
+          </button>
         </div>
-      </main>
-    </div>
+      </div>
+    </main>
   );
 }

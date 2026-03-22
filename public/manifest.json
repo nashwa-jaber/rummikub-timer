@@ -1,0 +1,21 @@
+{
+  "name": "Rummikub Pro Timer",
+  "short_name": "RumiTimer",
+  "description": "1-minute tactical timer for Rummikub",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#10b981",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}
